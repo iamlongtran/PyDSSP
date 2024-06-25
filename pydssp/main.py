@@ -15,7 +15,8 @@ from .pydssp_torch import (
     assign as assign_torch
 )
 
-C3_ALPHABET = np.array(['-', 'H', 'E'])
+C3_ALPHABET = np.array(['-', 'H', 'E', 'h']) # adding `h` as left-handed helix https://en.wikipedia.org/wiki/Protein_secondary_structure
+# equivalent onehot encode would be [loop, helix, strand, left_handed_helix] = [0,1,2,3]
 
 
 def get_hbond_map(
@@ -34,7 +35,8 @@ def assign(
     out_type: Literal['onehot', 'index', 'c3'] = 'c3'
     ) -> np.ndarray:
     assert type(coord) in [torch.Tensor, np.ndarray], "Input type must be torch.Tensor or np.ndarray"
-    assert out_type in ['onehot', 'index', 'c3'], "Output type must be 'onehot', 'index', or 'c3'"
+    assert out_type.lower() in ['onehot', 'index', 'c3'], "Output type must be 'onehot', 'index', or 'c3'"
+    out_type = out_type.lower()
     # main calcuration
     if type(coord) == torch.Tensor:
         onehot = assign_torch(coord)

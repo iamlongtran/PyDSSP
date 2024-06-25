@@ -3,11 +3,14 @@
 import torch
 from einops import repeat, rearrange
 
-CONST_Q1Q2 = 0.084
-CONST_F = 332
-DEFAULT_CUTOFF = -0.5
-DEFAULT_MARGIN = 1.0
-
+CONST_Q1Q2 = 0.084 #q1=0.42e; q2=0.20e. e=1.6e-19 C
+CONST_F = 332 # dimenional factor
+DEFAULT_CUTOFF = -0.5 # H-bond energy cutoff // pretty liberal cutoff, H bond can form if energy is <= -0.5 kcal/mol
+DEFAULT_MARGIN = 1.0 # H bond E cutoff margin, at the marginal value, often seen in week H bond, bifurcated h bond? ~50-60% E of canonical H bonds 
+# https://www.pnas.org/doi/full/10.1073/pnas.1319827111
+from pydssp import util
+#print path of util
+print(util)
 
 def _check_input(coord):
     org_shape = coord.shape
@@ -93,10 +96,27 @@ def assign(coord: torch.Tensor) -> torch.Tensor:
     a_bridge = torch.nn.functional.pad(a_bridge, [1,1,1,1])
     # ladder
     ladder = (p_bridge + a_bridge).sum(-1) > 0
-    # H, E, L of C3
+    # H, E, L of C3 #TODO add h as left handed helix
+
     helix = (helix3 + helix4 + helix5) > 0
     strand = ladder
     loop = (~helix * ~strand)
-    onehot = torch.stack([loop, helix, strand], dim=-1)
-    onehot = onehot.squeeze(0) if len(org_shape)==3 else onehot
+    ### add left handed helix here
+    print(util)
+    phis = util.get_phis(coord) # [tensor] L-1
+    psis = util.get_psis(coord) # [tensor] L-1
+    assert len(phis)==len(psis), "Length of phi and psi should be the same"
+    assert len(phis)==len(helix[0])-1, "Length of phi and psi should be L-1"
+    phis.append(torch.tensor([0.])) # add dummy phi for the last residue
+    psis.append(torch.tensor([0.])) # add dummy psi for the last residue
+    phis_torch = torch.FloatTensor(phis)
+    psis_torch = torch.FloatTensor(psis)
+    p_phis_psis = torch.where((phis_torch>0) & (psis_torch >0), 1,0)
+    left_handed_helix = helix * p_phis_psis
+
+    right_handed_helix = helix.long() - left_handed_helix
+
+    #left_handed_helix = torch.ones_like(helix) #temp
+    onehot = torch.stack([loop, right_handed_helix, strand, left_handed_helix], dim=-1)
+    onehot = onehot.squeeze(0) if len(org_shape)==4 else onehot
     return onehot

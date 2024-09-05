@@ -117,7 +117,7 @@ def assign(coord: np.ndarray) -> np.ndarray:
     phis = np.append(phis, 0) # add dummy phi for the last residue
     psis = np.append(psis, 0) # add dummy psi for the last residue
 
-    p_phis_psis = np.where((phis>0) & (psis>0), 1,0)
+    p_phis_psis = np.where((phis > 0) & (psis > -60), 1,0)
     left_handed_helix = helix * p_phis_psis
     helix = helix.astype(int) - left_handed_helix
 

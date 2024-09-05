@@ -109,7 +109,7 @@ def assign(coord: torch.Tensor) -> torch.Tensor:
     psis.append(torch.tensor([0.])) # add dummy psi for the last residue
     phis_torch = torch.FloatTensor(phis)
     psis_torch = torch.FloatTensor(psis)
-    p_phis_psis = torch.where((phis_torch>0) & (psis_torch >0), 1,0)
+    p_phis_psis = torch.where((phis_torch > 0) & (psis_torch > -60), 1,0) #liberal cutoff
     left_handed_helix = helix * p_phis_psis
 
     right_handed_helix = helix.long() - left_handed_helix
